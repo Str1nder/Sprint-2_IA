@@ -28,17 +28,15 @@ class Scraping:
         self.navegador = webdriver.Chrome(options=web_options)
         self.navegador.set_page_load_timeout(60)
         if not self.verificar_url():
-            print(f"URL não encontrada: {self.url}")
             self.navegador.quit()
-            return False
+            return {"status_code": 404, "mensagem": f"URL não encontrada: {self.url}"}
         try:
             self.navegador.get(self.url)
-            return True
+            return {"status_code": 200, "mensagem": f"URL encontrada: {self.url}"}
 
         except Exception as e:
-            print(f"Erro ao carregar a página: {e}")
             self.navegador.quit()
-            return False
+            return {"status_code": 500, "mensagem": f"Erro ao carregar a página: {e}"}
 
     def verificar_url(self):
         try:
@@ -60,8 +58,7 @@ class Scraping:
             total_pages = int(total_pages_text.split('de')[-1].strip())
             return total_pages
         except Exception as e:
-            print(f"Não foi possível obter o número total de páginas: {e}")
-            return 1
+            return {"status_code": 500, "mensagem": f"Não foi possível obter o número total de páginas: {e}"}
 
     async def scraping(self, total_pages):
         page_number = 1
@@ -86,15 +83,16 @@ class Scraping:
                 })
 
             page_number += 1
-        print('Scraping Concluido com sucesso')
-        return dados
+        return {"status_code": 200, "mensagem": f"Web Scraping Concluido com sucesso!"}, dados
 
     async def iniciar(self):
-        if not await self.acessar_web():
-            return []
+        status = {}
+        status = await self.acessar_web()
+        if status["status_code"] != 200:
+            return status, []
         total_pages = self.obter_numero_total_de_paginas()
         if self.max_page and self.max_page < total_pages:
             total_pages = self.max_page
-        self.dados = await self.scraping(total_pages)
+        status, self.dados = await self.scraping(total_pages)
         self.navegador.quit()
-        return self.dados
+        return status, self.dados

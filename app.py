@@ -1,12 +1,20 @@
+import uvicorn
+import pandas as pd
 from fastapi import FastAPI, Query, HTTPException, File, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
 from web_scraping import Scraping
 from database import iniciar_conexao   
 from regressao import modelo_faturamento, grafico_linha
 
-app = FastAPI()
+app = FastAPI(
+    title="API InsightIA",
+    description="API para realizar web scraping no ReclameAqui, Analise de faturamento e Insight das reclamacoes",
+    version="0.8.1",
+    docs_url="/doc",  # Customiza a URL do Swagger
+    openapi_url="/openapi.json",  # Customiza a URL do JSON do OpenAPI
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -21,54 +29,79 @@ db = None
 async def startup_event():
     global db
     db = iniciar_conexao()
-    print("API iniciada e conectada ao Firestore")
 
 async def save_db(dados):
     global db
     if db is None:
-        raise Exception("A conexão com o Firestore não foi estabelecida.")
+        raise HTTPException(status_code=500, detail="A conexão com o Firestore não foi estabelecida")
     try:
         colecao = db.collection("reclamacoes")
         for dado in dados:
             colecao.add(dado)
         return {"status_code": 200, "mensagem": "Dados coletados e salvos com sucesso", "dados": dados}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Erro ao salvar no banco de dados: " + str(e))
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco de dados: {str(e)}")
 
 
-@app.get("/scrape/{empresa}")
-async def scrape(empresa: str, max_page: int = Query(None, description="Número máximo de páginas para scraping")):
+@app.get("/")
+async def hello_world():
+    return {"status_code": 200, "mensagem": "Bem Vindo ao InsightIA"}
+
+# Realizar WebScraping no ReclameAqui buscando a empresa selecionada
+@app.get("/scraping/{empresa}")
+async def web_scraping(empresa: str, max_page: int = Query(None, description="Número máximo de páginas para scraping")):
     try:
+        empresa = empresa.replace(' ', '-')
         scraper = Scraping(empresa, max_page)
-        dados = await scraper.iniciar()
-
-        return await save_db(dados)
+        status, dados = await scraper.iniciar()
+        
+        # Verifica o código de status e faz o retorno apropriado
+        if status['status_code'] == 200:
+            return await save_db(status['dados'])
+        else:
+            raise HTTPException(status_code=status['status_code'], detail=f"{status['mensagem']}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro ao realizar web scraping: " +str(e))
 
+# Realizar WebScraping no ReclameAqui buscando a empresa selecionada
+@app.get("/empresas/")
+async def consultar_empresa():
+    try:
+        dados = {doc.to_dict().get("empresa") for doc in db.collection("reclamacoes").stream()}
+        if not dados:
+            raise HTTPException(status_code=404, detail=f"Nenhuma empresa com reclamações encontrada.")
+        
+        return {"status_code": 200, "Empresas": [dados] }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar empresas:  {str(e)}")
 
 @app.get("/reclamacoes/{empresa}")
 async def consultar_reclamacoes(empresa: str):
+    empresa = empresa.replace(' ', '-')
     try:
-        print(f"Consultando dados para a empresa: {empresa}")  # Adiciona log para depuração
-        colecao = db.collection("reclamacoes")
-        query = colecao.where('empresa', '==', empresa)
-        docs = query.stream()
-        
-        dados = []
-        for doc in docs:
-            doc_data = doc.to_dict()
-            print(f"Documento encontrado: {doc_data}")  # Adiciona log para depuração
-            dados.append(doc_data)
-        
+        dados = [doc.to_dict() for doc in db.collection("reclamacoes").where('empresa', '==', empresa).stream()]
         if not dados:
-            return {"status_code": 404, "mensagem": "Nenhuma reclamação encontrada para a empresa especificada."}
-        
-        return {"status_code": 200, "dados": dados}
+            raise HTTPException(status_code=404, detail=f"Nenhuma reclamação encontrada para a empresa informada.")
 
+        return {"status_code": 200, "dados": dados}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao consultar dados: {str(e)}")
+
+@app.delete("/reclamacoes/")
+def apagar_todas_reclamacoes():
+    try:
+        docs = db.collection("reclamacoes").stream()
+        for doc in docs:
+            doc.reference.delete()
+
+        return {"status_code": 200, "mensagem": "Todas as reclamações foram apagadas com sucesso."}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletear os dados: {str(e)}")
+
 
 @app.post("/faturamento")
 async def faturamento(file: UploadFile = File(...)):
@@ -115,5 +148,4 @@ async def faturamento(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, log_level="debug")

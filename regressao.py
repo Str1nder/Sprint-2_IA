@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib
 
-matplotlib.use('Agg')  # Configura o backend para modo não interativo
+matplotlib.use('Agg')  
 
 def modelo_faturamento(df):
     df['Datas'] = pd.to_datetime(df['Datas'], format='%d/%m/%Y')
