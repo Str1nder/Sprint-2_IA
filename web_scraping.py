@@ -11,8 +11,11 @@ import csv
 
 class Scraping:
 
-    def __init__(self, empresa, max_page=None):
+    def __init__(self, empresa, apelido=None, max_page=None):
         self.empresa = empresa
+        if apelido == None:
+            apelido = empresa
+        self.apelido = apelido
         self.url = f'https://www.reclameaqui.com.br/empresa/{self.empresa}/lista-reclamacoes/'
         self.max_page = max_page
         self.dados = []
@@ -70,13 +73,16 @@ class Scraping:
 
             for reclamacao in reclamacoes:
                 titulo = reclamacao.find('h4', class_='sc-1pe7b5t-1 bVKmkO').get_text() if reclamacao.find('h4', class_='sc-1pe7b5t-1 bVKmkO') else 'Título não encontrado'
-                descricao = reclamacao.find('p', class_='sc-1pe7b5t-2 fGresJ').get_text() if reclamacao.find('p', class_='sc-1pe7b5t-2 fGresJ') else 'Descrição não encontrada'
+                link = reclamacao.find('a')['href'] if reclamacao.find('a') else 'Link não encontrado'
+                descricao = reclamacao.find('p', class_='sc-1pe7b5t-2 eHoNfA').get_text() if reclamacao.find('p', class_='sc-1pe7b5t-2 eHoNfA') else 'Descrição não encontrada'
                 status = next((reclamacao.find('span', class_=cls).get_text() for cls in ['sc-1pe7b5t-4 jKvVbt', 'sc-1pe7b5t-4 cZrVnt', 'sc-1pe7b5t-4 ihkTSQ'] if reclamacao.find('span', class_=cls)), 'Status não encontrado')
                 tempo = reclamacao.find('span', class_='sc-1pe7b5t-5 dspDoZ').get_text() if reclamacao.find('span', class_='sc-1pe7b5t-5 dspDoZ') else 'Tempo não encontrado'
 
                 dados.append({
                     "empresa": self.empresa,
+                    "apelido": self.apelido,
                     "titulo": titulo,
+                    "link": f"https://www.reclameaqui.com.br{link}",
                     "descricao": descricao,
                     "status": status,
                     "tempo": tempo
