@@ -1,3 +1,5 @@
 # .gitignore
 db_config.json
 __pycache__/*
+venv/
+.env

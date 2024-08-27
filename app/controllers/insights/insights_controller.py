@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, HTTPException, File, UploadFile, APIRouter
-from .prompts import criar_question
+from .prompts import criar_analise_interna
 from app.database.connection import get_db
 
 router = APIRouter()
@@ -27,9 +27,8 @@ async def gerar_insight_interno(uuid: str, empresa: str):
       if empresa_dados is None:
           raise HTTPException(status_code=404, detail=f"Nenhuma reclamação encontrada para a empresa {empresa}.")
       dados = empresa_dados.get(empresa, [])
-      print(dados["dados"]["dados"])
       
-      response = criar_question(dados["dados"]["dados"])
+      response = criar_analise_interna(dados["dados"])
       return { "status_code": 200, "análise_por_categoria": response }
     
     except Exception as e:
