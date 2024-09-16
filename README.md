@@ -8,7 +8,7 @@ MARIA EDUARDA COSTA DE ARAÚJO VIEIRA RM98760
 # Insight IA
 
 ### Visão Geral
-O projeto InsightIA foi desenvolvido para coletar, processar e analisar reclamações de empresas publicadas na plataforma ReclameAqui. Ele permite a extração de insights valiosos a partir de dados coletados automaticamente, oferecendo uma visão clara e detalhada do comportamento das empresas em relação ao atendimento de reclamações.
+O projeto InsightIA foi desenvolvido para coletar, processar e analisar reclamações de empresas publicadas na plataforma ReclameAqui. Ele permite a extração de insights valiosos a partir de dados coletados automaticamente, oferecendo uma visão clara e detalhada do comportamento das empresas em relações as suas reclamação no mercado.
 
 ### Funcionalidades Implementadas
 - Análise de Reclamações: Processamento e categorização das reclamações para gerar insights.
