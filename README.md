@@ -189,4 +189,6 @@ uvicorn main:appApi --reload
 - Credenciais do Firebase: Certifique-se de que o Firebase Firestore está corretamente configurado e acessível.
 
 
+##### Link para o backend completo do projeto
+https://github.com/GitHubWithCjcnch/InsightIA_API/tree/caio
 
